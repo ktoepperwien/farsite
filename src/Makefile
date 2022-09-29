@@ -3,7 +3,18 @@ BASE=..
 
 CC=g++
 INC=
-CFLAGS=-c -std=c++11 -g -Wall -DUNIX -Wno-deprecated
+CFLAGS=-c -std=c++17 -g -Wall -DUNIX -Wno-deprecated
+
+UNAME := $(shell uname)
+
+ifeq ($(UNAME), Darwin)
+  ARCH = 2
+  $(info *****************  I'm a MAC  ******************)
+endif
+ifeq ($(UNAME), Linux)
+  ARCH = 1
+  $(info *****************  I'm a Linux machine  ******************)
+endif
 
 SOURCES=barriers.cpp burnupw.cpp cdtlib.cpp \
 	crossthread.cpp dbfopen.cpp Far_BSG.cpp Far_Cond.cpp Far_FPC.cpp \

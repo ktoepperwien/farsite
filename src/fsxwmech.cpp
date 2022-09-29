@@ -839,7 +839,7 @@ double Mechanix::spreadrate(long slope, double windspd, int fuel)
      if(ndead>0)
           ndead=4;
 
-     double nclas[2]={ndead,nlive};  // # of dead & live fuel classes
+     double nclas[2]={static_cast<double>(ndead),static_cast<double>(nlive)};  // # of dead & live fuel classes
     	double xmext[2]={newfuel.xmext, 0};
 
     	double load[4][2]=			     // tons per acre, later converted to lb/ft2
@@ -867,10 +867,10 @@ double Mechanix::spreadrate(long slope, double windspd, int fuel)
      //-------------------------------------------------------------------------
 
 	double sav[4][2]=			     // 1/ft
-	{	{newfuel.sav1, newfuel.savlh},
-		{109.0, newfuel.savlw},
+	{	{static_cast<double>(newfuel.sav1), static_cast<double>(newfuel.savlh)},
+		{109.0, static_cast<double>(newfuel.savlw)},
 		{30.0, 0.0},
-		{newfuel.savlh, 0.0},
+		{static_cast<double>(newfuel.savlh), 0.0},
 	};
 
 	double heat[4][2]=
@@ -1200,7 +1200,7 @@ double Mechanix::spreadrate(long slope, double windspd, int fuel)
 
 	double sav[4][2] =				 // 1/ft
 	{
-		{newfuel.sav1, newfuel.savlh}, {109.0, newfuel.savlw}, {30.0, 0.0},
+		{static_cast<double>(newfuel.sav1), newfuel.savlh}, {109.0, static_cast<double>(newfuel.savlw}, {30.0, 0.0)},
 		{newfuel.savlh, 0.0},
 	};
 
