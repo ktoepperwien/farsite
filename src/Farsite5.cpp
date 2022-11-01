@@ -22,7 +22,9 @@
 #if ARCH==1
 #include <sys/sendfile.h>
 #elif ARCH==2
-#include <sys/socket.h>
+// #include <sys/socket.h>
+#include <filesystem>
+#include <io.h>
 #endif
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -46,8 +48,11 @@ void CopyFile(char *in, char *out, bool unused)
 #if ARCH==1
     sendfile(write_fd, read_fd, &offset, stat_buf.st_size);
 #elif ARCH==2
-    sOutSize = sendfile(write_fd, read_fd, offset, &stat_buf.st_size, NULL, 0);
+    //sOutSize = sendfile(write_fd, read_fd, offset, &stat_buf.st_size, NULL, 0);
     //offset += stat_buf.st_size;
+    std::filesystem::path org_path{in};
+    std::filesystem::path dest_path{out};
+    std::filesystem::copy(org_path, dest_path);
 #endif
     close(read_fd);
     close(write_fd);
@@ -8185,7 +8190,7 @@ bool Farsite5::CheckThreadNumbers()
 		burn.ResetAllPerimThreads();
 //		burn.env->ResetAllThreads();
 		burn.CloseCrossThreads();
-		//Sleep(100);
+		//Sleep(100);int  Farsite5::FarsiteSimulationLoop()
 		//add EB
 		ResetThreads();
 		//  ::SendMessage(Client->HWindow, WM_COMMAND, CM_RESETTHREADS, NULL);
@@ -8266,15 +8271,15 @@ int i_Ret,  CondSw = 0;
 
 		  CanModifyInputs(false);
 		  CheckSteps();
-
+                  
 		  if (FARSITE_GO)		{
 	  		 if (PreCalcMoistures(GETVAL)) {
         if ( CondSw == 0 ) {             /* Do once to do all conditioning */
-//          SetFarsiteRunStatus (e_Condition);
+//          SetFarsiteRunStatus (e_Condition); 
           i_Ret = this->Run_CondDLL();       /* Run Moisture Cond, load/check inputs, run */
-
+          printf("Simulation is still a GO!\n");
           m_FPC.Set_FarsiteRunning();  /* Notify Process Class, Farsite is runnin */
-
+          
 //          SetFarsiteRunStatus (e_Farsite);
           if ( i_Ret < 0 )              /* Error or terminate requested */
             break;
@@ -8282,7 +8287,7 @@ int i_Ret,  CondSw = 0;
           CondSw++;                     /* Set one time only switch */
 //        this->cfmc.ExportMoistureDataText("C:/larryf/stutest/Test.txt", "");
         }
-
+        
 // Original...............
 //	 PreCalculateFuelMoisturesNoUI();
 //----------------------------------------------------------
@@ -8424,6 +8429,7 @@ int i_Ret,  CondSw = 0;
 
 		if (burn.SIMTIME > maximum)
 		{
+                        printf("Simulation completed\n");
 			FARSITE_GO = false;
 			/*if (GetRastMake()) {
 				WriteGISLogFile(0);
@@ -8449,7 +8455,7 @@ int i_Ret,  CondSw = 0;
 			//ResetEvent(hWaitEvent);
 			CheckSteps();
 		}
-
+                printf("Current number of fires: %d, sim time: %.2f, max time: %d\n", GetNumFires(), burn.SIMTIME, maximum ); 
 	}  /* 	while (burn.SIMTIME <= maximum)	*/
 /*.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-..-*/
 
@@ -9104,7 +9110,7 @@ void Farsite5::WriteOutputs(int type)
 			burn.fe->ld.fuel = -1;//(short) GetFuelConversion(hd.fuels[1]);   // make sure that there is fuel there
 			burn.fe->ld.cover = 0;   // make sure that there is fuel there
 
-//		burn.fe->GetFireEnvironment(burn.env, burn.SIMTIME, false);
+//		burn.fe->GetFireEnvironment(burn.env, burn.ZIMTIME, false);
 		burn.fe->GetFireEnvironment( burn.SIMTIME, false);
 
 			burn.fe->GetEnvironmentData(&env);
@@ -9674,6 +9680,7 @@ int i_Ret;
 					  DDE.DDE_SIMCOMMAND=false;
 				 }
 			*/
+
 	if (SIMULATE_GO)
 	{
 		//Beep(24000, 150);
@@ -9688,7 +9695,9 @@ int i_Ret;
 			//  							  //CmSimulateRestart();
 			// reset the simulation to beginning
 			if (IgnitionResetAtRestart(GETVAL))
+                                printf("Trying to load ignitions\n");
 				LoadIgnitions();
+                                printf("Done loading ignitions\n");
 			CountFires();
 		//}
 	}
@@ -9754,12 +9763,14 @@ int i_Ret;
 								}
 							}
 						}
+                                                printf("Fuel conversion done!\n");
 					}
 
 					if (!NEEDMX)
 					{
 						if (HaveGroundFuels())
 						{
+                                                        printf("We have ground fuels!\n");
 							if (GetTheme_Units(W_DATA) != 0 &&
 								//Inputs.CwdID == false &&
 								CheckPostFrontal(GETVAL))
@@ -9805,10 +9816,11 @@ int i_Ret;
 					smolder = flaming = 0.0;
 					//EB next line only
 					//StartSimThread();
-
+ 
 					//uncommented EB
-
+                                        printf("Starting loop\n");
 					i_Ret = FarsiteSimulationLoop();
+                                        printf("Loop done\n");
 					if ( i_Ret < 0 )  /* See notes in function heading */
                       return i_Ret ;
 
@@ -10314,7 +10326,9 @@ int i_Ret;
 		//barrier.load();
    }
 	AllocStationGrid(1, 1);   	   // initialize station grid to 1
+        printf("Allocating grid\n");
 	ResetDuration();
+        printf("Initiating simulation\n");
 	FlatSimulateInitiateTerminate();
 	//SetModelParams();
 	//on these in the start data case and end date case
@@ -10328,7 +10342,7 @@ int i_Ret;
     i_Ret =	Execute_StartRestart();
 
 	timeFinish = clock();
-
+    
     return i_Ret;    /* 1 = ok,  < 0 Error occured */
 }
 

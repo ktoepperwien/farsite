@@ -6,7 +6,7 @@
 //#include <windows.h>
 #include "cdtlib.h"
 #include "newfms.h"
-
+#include <stdio.h>
 #include "semtime.h"
 #include "deadfuelmoisture.h"
 #include "FMC_CI.h"
@@ -341,6 +341,7 @@ int i;
 /*----------------------------------------------------------------------------*/
 void CFMC::Set_DefFuelMoistModel (int _fm1, int _fm10, int _fm100,	int _fmHerb, int _fmWoody)
 {
+   printf("Assigning default fuel moisture\n");
    this->a_FE2->a_CI->SetAllMoistures(_fm1, _fm10, _fm100,	_fmHerb, _fmWoody);
 }
 

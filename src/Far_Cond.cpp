@@ -53,10 +53,12 @@ char  cr_ErrMes[1000];
 
   this->cfmc.Init();
 
+  printf("Loading fuel moisture inputs\n");
   i_AdjTim = FMC_LoadInputs (&this->icf,       /* input command file data */
                       &this->Header,    /* Landscape file header data */
                       &this->cfmc,
                       cr_ErrMes);
+  printf("Ok fuel moisture inputs are all set\n"); 
   if ( i_AdjTim < 0 ){                      /* Error occured */
     strcpy (this->icf.cr_ErrExt,cr_ErrMes);
     cfmc.Delete();
@@ -114,7 +116,7 @@ d_RAWS *ar;
 
 /* Currently Farsite only uses 1 processor */
    this->cfmc.SetNumStations (this->MaxThreads, 1); /* processors - weather stations */
-
+   printf("Setting woody\n");
 // NOTE - at this point the Cond DLL doesn't even handle this large woody but....
 //  for now we set it so we don't get an error,
    i = cfmc->Set_Woody (lcp->woodies, lcp->numwoody, cr_ErrMes);
@@ -122,6 +124,7 @@ d_RAWS *ar;
      return i;
 
 /* FuelModel categories */
+   printf("Setting fuel models\n");
    i = cfmc->Set_FuelModel (lcp->fuels, lcp->numfuel, cr_ErrMes);
    if ( i < 0 )
      return i;
@@ -133,10 +136,13 @@ d_RAWS *ar;
        break; }
 
 /* Set the default fuel moist model */
+printf("Setting default fuel moisture model\n");
+   icf->Display();
    cfmc->Set_DefFuelMoistModel (icf->a_FMD[i].i_TL1,   icf->a_FMD[i].i_TL10,
                                 icf->a_FMD[i].i_TL100, icf->a_FMD[i].i_TLLH,
                                 icf->a_FMD[i].i_TLLW);
 /* Now set all the fuel moist model */
+printf("Setting all fuel moisture models\n");
    for ( i = 0; i < icf->iN_FMD; i++ ) {          /* for each Model             */
      if ( icf->a_FMD[i].i_Model == e_DefFulMod )  /* Skip the Default Model     */
        continue;
@@ -144,7 +150,7 @@ d_RAWS *ar;
                                icf->a_FMD[i].i_TL10, icf->a_FMD[i].i_TL100,
                                icf->a_FMD[i].i_TLLH, icf->a_FMD[i].i_TLLW); }
 /*..................................................................*/
-
+ 
    cfmc->Set_Elev(lcp->hielev, lcp->loelev, lcp->EUnits);    /* Unit 1 == feet, 0 = meter */
    cfmc->Set_Slope(lcp->hislope, lcp->loslope, lcp->SUnits); /* Unit 0 = percent, 1 = degrees */
    cfmc->Set_Cover(lcp->hicover, lcp->locover, lcp->CUnits);
