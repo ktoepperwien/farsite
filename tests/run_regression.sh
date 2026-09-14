@@ -62,6 +62,15 @@ SENSITIVE_PREFIXES="test1177973_NTFBIgnition"
 
 fail=0; n_exact=0; n_tol=0; n_soft=0; n_hard=0
 
+# Say which mode this run used: the default now varies by platform, so a log
+# is ambiguous without it -- "diverged: 0" means something different under
+# strict gating than under lenient.
+if [ "$STRICT_ALL" = "1" ]; then
+  echo "== mode: STRICT (every case gated; $(uname -s)/$(uname -m)) =="
+else
+  echo "== mode: LENIENT (sensitive cases reported, not gated; $(uname -s)/$(uname -m)) =="
+fi
+
 echo "== building =="
 make -C "$REPO/src" -j"$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 4)" >"$WORK/build.log" 2>&1 || {
   echo "BUILD FAILED:"; tail -30 "$WORK/build.log"; exit 1; }
