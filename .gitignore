@@ -32,3 +32,6 @@ TestFARSITE
 # Python
 __pycache__/
 *.pyc
+
+# Build and test logs (e.g. the Linux verification run)
+logs/
