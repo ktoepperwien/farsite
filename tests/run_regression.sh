@@ -8,17 +8,21 @@
 #   STRICT cases   reproduce the references bit-for-bit. They are the real
 #                  regression gate: any difference in a .asc grid is a bug.
 #
-#   SENSITIVE cases do not, and cannot, reproduce bit-for-bit off the original
-#                  platform. FARSITE's spread front is threshold-driven, so
-#                  last-bit floating-point differences get amplified into
-#                  macroscopic ones. Measured on Apple silicon: Panther's
-#                  test1177973 differs from the references in 9 of 10 grids,
-#                  and it differs that much between -O0 and -O2 *on the same
-#                  machine with identical sources*. These cases are therefore
-#                  run as smoke tests: they must complete and produce output,
-#                  and their divergence is reported for eyeballing, but they do
-#                  not fail the run. Set STRICT_ALL=1 to gate on them anyway
-#                  (only meaningful on x86 Linux/gcc -O0).
+#   SENSITIVE cases do not reproduce bit-for-bit off the platform that
+#                  generated the references. FARSITE's spread front is
+#                  threshold-driven, so last-bit floating-point differences get
+#                  amplified into macroscopic ones. Measured on Apple silicon:
+#                  Panther's test1177973 differs from the references in 9 of 10
+#                  grids, and it differs that much between -O0 and -O2 *on the
+#                  same machine with identical sources*. These cases run as
+#                  smoke tests there: they must complete and produce output, and
+#                  their divergence is reported but does not fail the run.
+#
+# On x86_64 Linux every case reproduces exactly -- measured 207 of 207 files
+# bit-identical with gcc 12.4.0, at both -O0 and -O2 -- so the whole suite is
+# gated strictly there by default. That is the platform the committed references
+# came from, which makes it the one place a divergence is unambiguously a bug.
+# Override either way with STRICT_ALL=1 / STRICT_ALL=0.
 #
 # .fbg files are raw float32 and .shp files store doubles, so both are compared
 # numerically rather than byte-wise: even STRICT cases legitimately differ in
@@ -35,7 +39,15 @@ trap 'rm -rf "$WORK"' EXIT
 
 FBG_RTOL="${FBG_RTOL:-1e-5}"
 SHP_RTOL="${SHP_RTOL:-1e-6}"
-STRICT_ALL="${STRICT_ALL:-0}"
+# Gate every case strictly on x86_64 Linux, where the references reproduce
+# exactly; elsewhere the SENSITIVE cases are reported but not gated.
+if [ -z "${STRICT_ALL:-}" ]; then
+  if [ "$(uname -s)" = "Linux" ] && [ "$(uname -m)" = "x86_64" ]; then
+    STRICT_ALL=1
+  else
+    STRICT_ALL=0
+  fi
+fi
 
 # name : strictness : run-command file (relative to examples/)
 CASES=(

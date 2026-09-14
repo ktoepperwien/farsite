@@ -57,8 +57,11 @@ make clean && make CXXFLAGS="-std=c++11 -g -Wall -DUNIX -Wno-deprecated"
 ```
 
 For the same reason, expect output to differ between machines of different
-architecture. See `tests/run_regression.sh`, which distinguishes the cases that
-reproduce the committed reference outputs exactly from the ones that cannot.
+architecture. On x86_64 Linux with gcc every case reproduces the committed
+reference outputs bit-for-bit, so `tests/run_regression.sh` gates the whole suite
+strictly there; on other architectures some cases diverge by a few percent of
+burned area and are reported without failing. See that script's header for which
+cases and why.
 
 Before any of the examples will run, you need to replace all occurrences of `$scriptRoot/farsite` in many of the examples files with `<pathToRepo>/farsite`. For example, if your username is `john` and you have placed the farsite repo in a directory called `src` in your `$HOME` directory, you need to replace `$scriptRoot/farsite` with `/home/john/src/farsite`. (notice that `farsite` is repeated in both texts to change, so can drop the `/farsite` when running keyword replacer command line utilities).
 

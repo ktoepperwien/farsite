@@ -310,11 +310,24 @@ out at near-black, which disappears against dark satellite imagery.
 
 ## Reproducibility
 
-Results are **not** portable across machines. FARSITE's spread front is
-threshold-driven, so last-bit floating-point differences amplify: the same
-sources diverge visibly between `-O0` and `-O2` on one machine. `tests/run_regression.sh`
-distinguishes the cases that reproduce the committed references exactly from
-those that cannot. To compare against older unoptimised numbers, rebuild with
+Results are exactly reproducible on the platform that produced the committed
+reference outputs, and only approximately reproducible elsewhere.
+
+- **x86_64 Linux / gcc:** every case reproduces bit-for-bit — measured 207 of 207
+  output files identical with gcc 12.4.0, at both `-O0` and `-O2`.
+  `tests/run_regression.sh` therefore gates the whole suite strictly there by
+  default.
+- **Other platforms:** FARSITE's spread front is threshold-driven, so last-bit
+  floating-point differences amplify into macroscopic ones. On Apple silicon,
+  Panther's `cust` case still matches exactly but `test1177973`, `cougarCreek` and
+  `flatland` differ by a few percent of burned area — and differ that much between
+  `-O0` and `-O2` on the same machine with identical sources. The suite reports
+  those without failing; `STRICT_ALL=1` forces it to gate on them anyway.
+
+So a difference on x86_64 Linux is unambiguously a bug, while a difference on
+another architecture usually is not. Check there first.
+
+To compare against older unoptimised numbers, rebuild with
 `make clean && make CXXFLAGS="-std=c++11 -g -Wall -DUNIX -Wno-deprecated"`.
 
 Seeds worth pinning: `--noise-seed` (wind), `--moisture-seed`, and
