@@ -188,7 +188,7 @@ bool IgnitionFile::ShapeInput()
 							CenterY);
 						pFarsite->SetFireChx(pFarsite->GetNewFires(), j - start, -1.0, 0.0);	// 100% of equilibrium spread
 						pFarsite->SetReact(pFarsite->GetNewFires(), j - start, 0.0);
-						if (j > start && k < end - 1)   			   	// write points bacward in array
+						if (j > start && j < end - 1)   			   	// write points bacward in array
 						{
 							pFarsite->SetPerimeter1(pFarsite->GetNewFires(), count2, CenterX,
 								CenterY);
