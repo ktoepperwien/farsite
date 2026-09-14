@@ -252,6 +252,7 @@ Farsite5::Farsite5(void) : burn(this), Atk(this), Ignition(this), vect(this), sh
 	ignitionCols = 0;
 	ignitionRows = 0;
 	CantAllocLCP = false;
+	RecomputeLcpStats = false;
 	landscape = NULL;
 	landfile = 0;
 	OldFilePosition = 0;
@@ -853,7 +854,7 @@ void Farsite5::ReadHeader()
 		delete lcptheme;
 		lcptheme = 0;
 	}
-	lcptheme = new LandscapeTheme(false, this);
+	lcptheme = new LandscapeTheme(RecomputeLcpStats, this);
 
 	if (landscape == 0)
 	{

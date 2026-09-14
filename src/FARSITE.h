@@ -16,6 +16,9 @@ public:
 	CFarsite();
 	~CFarsite();
 	int SetLandscapeFile(char *_lcpFileName);
+	// Call before SetLandscapeFile to recompute the LCP header's per-theme
+	// statistics from the raster rather than trusting the stored header.
+	void SetRecomputeLcpStats(bool on);
 	int SetIgnition(char *shapeFileName);
 	int SetBarriers(char *shapeFileName);
 	int SetNumProcessors(int numThreads = 1);

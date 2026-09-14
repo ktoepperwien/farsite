@@ -656,6 +656,12 @@ float  computeSurfPropForCell ( int i_Type, double canopyHeight,
 	ICF icf;          /* input command file class  */
 	short* landscape;
 	bool CantAllocLCP;
+	// When true, LoadLandscapeFile recomputes the landscape header's per-theme
+	// statistics (min/max and category lists) from the raster itself instead of
+	// trusting what is stored in the header. Needed for LCPs written by
+	// third-party tools that get that block wrong; off by default so that
+	// well-formed files reproduce byte for byte.
+	bool RecomputeLcpStats;
 	FILE* landfile;
 	char LandFName[256];
 	char InputsFName[256];

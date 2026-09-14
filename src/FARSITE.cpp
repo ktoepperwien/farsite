@@ -18,6 +18,12 @@ CFarsite::~CFarsite()
 	m_pFarsite = NULL;
 }
 
+void CFarsite::SetRecomputeLcpStats(bool on)
+{
+	if(m_pFarsite)
+		m_pFarsite->RecomputeLcpStats = on;
+}
+
 int CFarsite::SetLandscapeFile(char *_lcpFileName)
 {
 	if(m_pFarsite)

@@ -844,8 +844,14 @@ int linuxMain(int argc, char* argv[])
 	if(argc < 2)
 	{
 		printf("TestFARSITE expects one parameter\nTestFARSITE Usage:\n"
-			"TestFARSITE [commandfile]\n"
-			"Where:\n\t[commandfile] is the path to the command file.\n");
+			"TestFARSITE [commandfile] [--recompute-lcp-stats]\n"
+			"Where:\n\t[commandfile] is the path to the command file.\n"
+			"\t--recompute-lcp-stats (optional) recomputes each landscape file's\n"
+			"\t\tper-theme statistics (min/max and category lists) from the raster\n"
+			"\t\tinstead of trusting the values stored in its header. Use this for\n"
+			"\t\tLCPs produced by third-party converters, which often get that\n"
+			"\t\tblock wrong; a wrong fuel-model category list silently zeroes\n"
+			"\t\tevery conditioned dead fuel moisture.\n");
 		printf("The command file contains command lines for multiple Farsite runs, each run's command on a seperate line.\n");
 		printf("Each command expects six parameters, all required\n"
 			"[LCPName] [InputsFileName] [IgnitionFileName] [BarrierFileName] [outputDirPath] [outputsType]\n"
@@ -856,6 +862,17 @@ int linuxMain(int argc, char* argv[])
 			"\t[outputDirPath] is the path to the output files base name (no extension)\n"
 			"\t[outputsType] is the file type for outputs (0 = both, 1 = ASCII grid, 2 = FlamMap binary grid\n\n");
 		exit(1);
+	}
+	bool recomputeLcpStats = false;
+	for(int a = 2; a < argc; a++)
+	{
+		if(!strcmp(argv[a], "--recompute-lcp-stats"))
+			recomputeLcpStats = true;
+		else
+		{
+			printf("Error, unrecognized option %s\n", argv[a]);
+			exit(1);
+		}
 	}
 	FILE *cmd = fopen(argv[1], "rt");
 	if(!cmd)
@@ -916,9 +933,12 @@ int linuxMain(int argc, char* argv[])
 	for(f = 0; f < nFarsites; f++)
 	{
         pFarsites[f] = new CFarsite();
+		pFarsites[f]->SetRecomputeLcpStats(recomputeLcpStats);
 		if(!cancelRequest)
 		{
 			printf("Loading lcp file for Farsite #%d: %s\n", f + 1, lcps[f]);
+			if(recomputeLcpStats)
+				printf("Recomputing landscape statistics from raster\n");
 			if ( !pFarsites[f]->SetLandscapeFile(lcps[f]))
 			{
 				printf ("Can't open: %s \n", lcpFileName);

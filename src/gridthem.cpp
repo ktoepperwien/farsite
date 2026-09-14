@@ -694,6 +694,24 @@ LandscapeTheme::LandscapeTheme(bool Analyze, Farsite5 *_pFarsite) : GridTheme()
 }
 
 
+// The landscape-file header stores each theme's category list as int32[100],
+// but LandscapeTheme keeps it as long[100]. On LP64 those differ in width, so
+// these must be copied element by element: a memcpy of 100 * sizeof(long)
+// reads or writes 800 bytes against a 400-byte array, which corrupted the
+// header fields following the category arrays (numeast, the UTM corners and
+// every unit code) and made ReadStats() yield two int32s packed into one long.
+static void CatsFromHeader(long *dst, const int32 *src)
+{
+	for (long i = 0; i < 100; i++)
+		dst[i] = src[i];
+}
+
+static void CatsToHeader(int32 *dst, const long *src)
+{
+	for (long i = 0; i < 100; i++)
+		dst[i] = (int32) src[i];
+}
+
 void LandscapeTheme::ReadStats()
 {
 	NumAllCats[0] = pFarsite->Header.numelev;
@@ -706,16 +724,16 @@ void LandscapeTheme::ReadStats()
 	NumAllCats[7] = pFarsite->Header.numdensity;
 	NumAllCats[8] = pFarsite->Header.numduff;
 	NumAllCats[9] = pFarsite->Header.numwoody;
-	memcpy(&AllCats[0], pFarsite->Header.elevs, 100 * sizeof(long));
-	memcpy(&AllCats[1], pFarsite->Header.slopes, 100 * sizeof(long));
-	memcpy(&AllCats[2], pFarsite->Header.aspects, 100 * sizeof(long));
-	memcpy(&AllCats[3], pFarsite->Header.fuels, 100 * sizeof(long));
-	memcpy(&AllCats[4], pFarsite->Header.covers, 100 * sizeof(long));
-	memcpy(&AllCats[5], pFarsite->Header.heights, 100 * sizeof(long));
-	memcpy(&AllCats[6], pFarsite->Header.bases, 100 * sizeof(long));
-	memcpy(&AllCats[7], pFarsite->Header.densities, 100 * sizeof(long));
-	memcpy(&AllCats[8], pFarsite->Header.duffs, 100 * sizeof(long));
-	memcpy(&AllCats[9], pFarsite->Header.woodies, 100 * sizeof(long));
+	CatsFromHeader(AllCats[0], pFarsite->Header.elevs);
+	CatsFromHeader(AllCats[1], pFarsite->Header.slopes);
+	CatsFromHeader(AllCats[2], pFarsite->Header.aspects);
+	CatsFromHeader(AllCats[3], pFarsite->Header.fuels);
+	CatsFromHeader(AllCats[4], pFarsite->Header.covers);
+	CatsFromHeader(AllCats[5], pFarsite->Header.heights);
+	CatsFromHeader(AllCats[6], pFarsite->Header.bases);
+	CatsFromHeader(AllCats[7], pFarsite->Header.densities);
+	CatsFromHeader(AllCats[8], pFarsite->Header.duffs);
+	CatsFromHeader(AllCats[9], pFarsite->Header.woodies);
 	maxval[0] = pFarsite->Header.hielev;
 	minval[0] = pFarsite->Header.loelev;
 	maxval[1] = pFarsite->Header.hislope;
@@ -762,16 +780,16 @@ void LandscapeTheme::AnalyzeStats()
 	pFarsite->Header.numdensity = NumAllCats[7];
 	pFarsite->Header.numduff = NumAllCats[8];
 	pFarsite->Header.numwoody = NumAllCats[9];
-	memcpy(pFarsite->Header.elevs, &AllCats[0], 100 * sizeof(long));
-	memcpy(pFarsite->Header.slopes, &AllCats[1], 100 * sizeof(long));
-	memcpy(pFarsite->Header.aspects, &AllCats[2], 100 * sizeof(long));
-	memcpy(pFarsite->Header.fuels, &AllCats[3], 100 * sizeof(long));
-	memcpy(pFarsite->Header.covers, &AllCats[4], 100 * sizeof(long));
-	memcpy(pFarsite->Header.heights, &AllCats[5], 100 * sizeof(long));
-	memcpy(pFarsite->Header.bases, &AllCats[6], 100 * sizeof(long));
-	memcpy(pFarsite->Header.densities, &AllCats[7], 100 * sizeof(long));
-	memcpy(pFarsite->Header.duffs, &AllCats[8], 100 * sizeof(long));
-	memcpy(pFarsite->Header.woodies, &AllCats[9], 100 * sizeof(long));
+	CatsToHeader(pFarsite->Header.elevs, AllCats[0]);
+	CatsToHeader(pFarsite->Header.slopes, AllCats[1]);
+	CatsToHeader(pFarsite->Header.aspects, AllCats[2]);
+	CatsToHeader(pFarsite->Header.fuels, AllCats[3]);
+	CatsToHeader(pFarsite->Header.covers, AllCats[4]);
+	CatsToHeader(pFarsite->Header.heights, AllCats[5]);
+	CatsToHeader(pFarsite->Header.bases, AllCats[6]);
+	CatsToHeader(pFarsite->Header.densities, AllCats[7]);
+	CatsToHeader(pFarsite->Header.duffs, AllCats[8]);
+	CatsToHeader(pFarsite->Header.woodies, AllCats[9]);
 	pFarsite->Header.hielev = (long)maxval[0];
 	pFarsite->Header.loelev = (long)minval[0];
 	pFarsite->Header.hislope = (long)maxval[1];
@@ -911,9 +929,18 @@ void LandscapeTheme::SortCats()
 		AllCats[m][0] = 0;
 		for (i = 0; i < NumAllCats[m]; i++)
 			AllCats[m][i + 1] = SwapCats[i];
-		minval[m] = AllCats[m][1];
-		if (minval[m] < 0)
-			minval[m] = 0;
+		// Keep the minimum FillCats() computed: it already skips nodata. Taking
+		// AllCats[m][1] here instead would substitute the lowest *category*,
+		// which for a theme carrying nodata is the nodata value itself, and
+		// clamping that to 0 then shifts the conditioning code's elevation and
+		// slope bands. Only fall back to the category list if FillCats() found
+		// no valid value at all.
+		if (minval[m] > maxval[m])
+		{
+			minval[m] = AllCats[m][1];
+			if (minval[m] < 0)
+				minval[m] = 0;
+		}
 	}
 }
 
