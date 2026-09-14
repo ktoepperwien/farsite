@@ -4,6 +4,9 @@
 *.o
 *.obj
 
+# Makefile dependency files (-MMD)
+*.d
+
 # Compiled Dynamic libraries
 *.so
 *.dylib
@@ -25,3 +28,7 @@ TestFARSITE
 *.swo
 *.swp
 *~
+
+# Python
+__pycache__/
+*.pyc

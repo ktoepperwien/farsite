@@ -38,43 +38,63 @@ The flatland case was given to Loren by Stu after it was discovered that Linux f
 
 #################  Step by Step Guide for Building and Running the Script  #################
 
-The following worked on fresh installations of Ubuntu 16.04 and 18.04:
+The following works on Linux (tested on fresh installations of Ubuntu 16.04 and 18.04) and on macOS (tested with Apple clang on Apple silicon). No external libraries are needed:
 ```
 cd <pathToFarsiteRepo>/farsite/src
 make
 ./TestFARSITE ../examples/Panther/runPanther.txt 2>&1 | tee scriptRun.log
 ```
 
+The build is optimised (`-O2`), which is about 2.5x faster than the unoptimised
+build this Makefile used to produce. Be aware that FARSITE's fire front is
+threshold-driven, so accumulated last-bit floating-point differences can grow
+into visible ones: some cases give identical output at `-O0` and `-O2`, and
+others do not. If you are comparing against numbers produced by an older
+unoptimised build, reproduce its flags explicitly:
+
+```
+make clean && make CXXFLAGS="-std=c++11 -g -Wall -DUNIX -Wno-deprecated"
+```
+
+For the same reason, expect output to differ between machines of different
+architecture. See `tests/run_regression.sh`, which distinguishes the cases that
+reproduce the committed reference outputs exactly from the ones that cannot.
+
 Before any of the examples will run, you need to replace all occurrences of `$scriptRoot/farsite` in many of the examples files with `<pathToRepo>/farsite`. For example, if your username is `john` and you have placed the farsite repo in a directory called `src` in your `$HOME` directory, you need to replace `$scriptRoot/farsite` with `/home/john/src/farsite`. (notice that `farsite` is repeated in both texts to change, so can drop the `/farsite` when running keyword replacer command line utilities).
 
 Here is some command line code you can use to modify the paths:
 ```
 editingDir="<pathToFarsiteRepo>/farsite/examples"
-textToReplace="\$scriptRoot"
 replacementText="<pathToFarsiteRepo>"
-## prepare the text by replacing all "/" chars with "\/" chars
-preppedTextToReplace=$(sed 's/\//\\\//g' <<<"$textToReplace")
-preppedReplacementText=$(sed 's/\//\\\//g' <<<"$replacementText")
-## prepare the text by replacing all "=" chars with "\=" chars
-preppedTextToReplace=$(sed 's/\=/\\\=/g' <<<"$preppedTextToReplace")
-preppedReplacementText=$(sed 's/\=/\\\=/g' <<<"$preppedReplacementText")
-grep -rl "${preppedTextToReplace}" "${editingDir}" --exclude-dir=.git --exclude-dir=src --exclude=readme | xargs sed -i 's/'"${preppedTextToReplace}"'/'"${preppedReplacementText}"'/g'
+grep -rlF '$scriptRoot' "${editingDir}" --exclude-dir=.git \
+  | REPL="${replacementText}" xargs perl -pi -e 's/\$scriptRoot/$ENV{REPL}/g'
 success=$?
 echo $success
 ```
 
 Note that a 0 means success, a 123 means nothing needed replaced, anything else is probably a fail. You'll probably have to play around a bit to get the right paths.
 
+Two portability notes on that snippet, both of which will silently do nothing rather than
+report an error if you get them wrong:
+
+- `grep -F` (fixed-string match) is required. Without `-F`, BSD/macOS `grep` treats the
+  `$` in `$scriptRoot` as an end-of-line anchor, matches no files, and the replacement
+  step then runs on an empty file list and exits 0 having changed nothing.
+- `perl -pi` is used rather than `sed -i` because the two `sed`s are mutually
+  incompatible: BSD/macOS `sed` requires an argument after `-i` (`sed -i ''`), while
+  GNU/Linux `sed` requires that there be none. Passing the replacement through the
+  environment (`REPL=...` plus `$ENV{REPL}`) also avoids having to escape `/` or `=`.
+
 
 If you hate that changing the paths means running "git status" results in a bunch of changed files you really don't want to keep track of, since git has to keep track of the example files but they change in a way that means they should be ignored unless you are directly developing them since the paths all changed, you can use something like the following:
 ```
 examplesDir="<pathToFarsiteRepo>/farsite/examples"
-git ls-files -- ${examplesDir} | xargs -l git update-index --assume-unchanged
+git ls-files -- ${examplesDir} | xargs -L 1 git update-index --assume-unchanged
 ```
 
 If you realize you need to make development changes to all the example files and want to retrack these ignored but tracked example files, use:
 ```
-git ls-files -- ${examplesDir} | xargs -l git update-index --no-assume-unchanged
+git ls-files -- ${examplesDir} | xargs -L 1 git update-index --no-assume-unchanged
 success=$?
 ```
 

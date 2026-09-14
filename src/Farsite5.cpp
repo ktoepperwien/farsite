@@ -18,7 +18,7 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <sys/sendfile.h>
+#include <fstream>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -26,20 +26,17 @@
 #define strcmpi strcasecmp
 #define FALSE 0
 #define MAX_PATH 256
+// Portable file copy. The previous implementation used sendfile(2), which is a
+// Linux-only interface, so this file would not compile on macOS or the BSDs.
+// std::ifstream/ofstream behave identically on every supported platform, which
+// keeps this free of per-platform #if branching.
 void CopyFile(char *in, char *out, bool unused)
 {
-
-    int read_fd;
-    int write_fd;
-    struct stat stat_buf;
-    off_t offset = 0;
-
-    read_fd = open(in, O_RDONLY);
-    fstat(read_fd, &stat_buf);
-    write_fd = open(out, O_WRONLY | O_CREAT, stat_buf.st_mode);
-    sendfile(write_fd, read_fd, &offset, stat_buf.st_size);
-    close(read_fd);
-    close(write_fd);
+    std::ifstream src(in, std::ios::binary);
+    std::ofstream dst(out, std::ios::binary | std::ios::trunc);
+    if (!src || !dst)
+        return;
+    dst << src.rdbuf();
 }
 #endif
 using namespace std;
@@ -1585,7 +1582,7 @@ double* Farsite5::AllocPerimeter1(long NumFire, long NumPoints)
 			}
 		}
 		nmemb = (NumPoints) * NUMDATA;			// add 1 to make room for bounding rectangle
-                if (perimeter1[NumFire] && perimeter1[NumFire] > 0)
+                if (perimeter1[NumFire] != NULL)
 			FreePerimeter1(NumFire);
 		perimeter1[NumFire] = new double[nmemb];
 
@@ -1736,7 +1733,7 @@ long Farsite5::GetElev(long Num)
 long* Farsite5::GetElevAddress(long Num)
 {
 	if (!GroundElev)
-		return (long) NULL;
+		return NULL;
 
 	return &GroundElev[Num];
 }

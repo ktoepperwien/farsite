@@ -1,9 +1,23 @@
-BASE=..
+# Builds TestFARSITE on Linux and macOS with no external libraries.
+#
+# Deliberately free of platform detection: every source file compiles with the
+# same flags on both platforms. Use CXX=clang++ (or any other compiler) on the
+# command line to override.
 
-
-CC=g++
-INC=
-CFLAGS=-c -std=c++11 -g -Wall -DUNIX -Wno-deprecated
+CXX ?= g++
+INC =
+# -MMD -MP (added at the compile rule) emit .d files so that editing a header
+# rebuilds its dependents.
+#
+# -O2 is ~2.5x faster than the unoptimised build this Makefile used to produce.
+# It gives identical results on reproducible cases, but FARSITE's spread front is
+# threshold-driven, so on floating-point-sensitive cases the optimisation level
+# can change output. To reproduce the numbers an unoptimised build produces:
+#
+#     make clean && make CXXFLAGS="-std=c++11 -g -Wall -DUNIX -Wno-deprecated"
+#
+CXXFLAGS ?= -std=c++11 -O2 -g -Wall -DUNIX -Wno-deprecated
+CPPFLAGS ?=
 
 SOURCES=barriers.cpp burnupw.cpp cdtlib.cpp \
 	crossthread.cpp dbfopen.cpp Far_BSG.cpp Far_Cond.cpp Far_FPC.cpp \
@@ -18,16 +32,20 @@ SOURCES=barriers.cpp burnupw.cpp cdtlib.cpp \
 	FMC_FE22.cpp FMC_FE3.cpp semtime.cpp rand3.cpp TestFARSITE.cpp
 
 OBJECTS=$(SOURCES:.cpp=.o)
+DEPS=$(OBJECTS:.o=.d)
 EXECUTABLE=TestFARSITE
 
+.PHONY: all clean
 
-all: $(SOURCES) $(EXECUTABLE)
+all: $(EXECUTABLE)
 
 $(EXECUTABLE): $(OBJECTS)
-	$(CC) $(OBJECTS) -o $@
-#	$(CC) TestFARSITE.o $(LD_EXE) -o $@
+	$(CXX) $(OBJECTS) -o $@
 
-.cpp.o:
-	$(CC) $(INC) $(CFLAGS) $< -o $@
+%.o: %.cpp
+	$(CXX) $(INC) $(CPPFLAGS) $(CXXFLAGS) -MMD -MP -c $< -o $@
+
 clean:
-	rm -f *.o $(EXECUTABLE)
+	rm -f *.o *.d $(EXECUTABLE)
+
+-include $(DEPS)
