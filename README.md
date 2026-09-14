@@ -106,6 +106,81 @@ git update-index --no-assume-unchanged <fileToRetrack>
 Note that running the farsite examples will overwrite past output with new output, which only should be tracked if you are doing development work on the example files, so the above git ignore stuff might be even more useful than you think. The main reason the old output is tracked in these example files is so you can look over what the normal outputs of farsite are like without running farsite.
 
 
+#################  Building a Case From Scratch  #################
+
+`doc/building_a_case.md` walks through generating every input for a new run, and
+`doc/lcp_format.md` documents the landscape file format. The helper scripts:
+
+| Script | Purpose |
+|---|---|
+| `scripts/crop_landfire.py` | crop LANDFIRE CONUS mosaics to a window around a fire centroid |
+| `scripts/tif2lcp.py` | build a `.lcp` from GeoTIFFs |
+| `scripts/make_wind.py` | gridded wind fields (`.atm` + ASCII grids), constant or noisy |
+| `scripts/make_ignition.py` | ignition shapefile, or validate an existing one |
+| `scripts/make_input.py` | the `.input` file, fuel moistures, and a RAWS weather stream |
+| `scripts/plot_arrival.py` | map the arrival-time grid over satellite imagery (needs the `geo` conda env) |
+
+`examples/Dish/run_dish.sh` runs the whole chain for a case built this way and is
+configurable by environment variable. (The Dish case itself is not tracked — see the
+note at the top of `doc/building_a_case.md`.)
+
+```
+WIND_MODE=noisy WIND_SPEED=8 WIND_DIR=225 HOURS=12 ./examples/Dish/run_dish.sh
+```
+
+Tests live in `tests/`: `run_regression.sh` (compares against the committed
+reference outputs), `test_tif2lcp.sh` (landscape conversion), and
+`test_line_ignition.sh` (the line-source ignition path).
+
+
+#################  Getting Landscape Files Now That LANDFIRE Dropped .LCP  #################
+
+LANDFIRE finished moving from `.lcp` to GeoTIFF during 2024, so the landscape
+files this version of FARSITE reads are no longer distributed. Use
+`scripts/tif2lcp.py` to build one from the GeoTIFFs you can get:
+
+```
+# LANDFIRE-style multi-band stack, bands already in LCP order
+python3 scripts/tif2lcp.py --stack landscape.tif -o mylandscape.lcp --latitude 45
+
+# or one GeoTIFF per theme
+python3 scripts/tif2lcp.py --elevation e.tif --slope s.tif --aspect a.tif \
+        --fuel f.tif --cover c.tif -o mylandscape.lcp --latitude 45
+```
+
+It needs GDAL's Python bindings (`pip install gdal` or `conda install gdal`).
+Only the converter needs GDAL -- `TestFARSITE` itself still builds with nothing
+but a C++ compiler. Run `python3 scripts/tif2lcp.py --help` for the unit
+options; the defaults match what LANDFIRE ships.
+
+Two things to know before trusting the output:
+
+**Don't use `gdal_translate -of LCP`.** GDAL can write `.lcp`, and its pixel
+data is correct, but its header statistics block is not: it writes each theme's
+category list with a +32768 bias (GDAL cannot re-read its own output) and folds
+the `-9999` nodata fill into the per-theme minima. That is not cosmetic. A
+malformed fuel-model category list makes FARSITE's conditioning code build no
+fuel-moisture keys at all, so every conditioned dead fuel moisture comes back
+`0.0` and the landscape burns as if bone dry -- with nothing printed. Verified:
+the same landscape gave visibly different fire behaviour in all ten output
+grids.
+
+**If a landscape file came from somewhere else, use the safety net.** Passing
+`--recompute-lcp-stats` makes FARSITE rebuild that statistics block from the
+raster instead of trusting the header:
+
+```
+./TestFARSITE mycommandfile.txt --recompute-lcp-stats
+```
+
+It is off by default so well-formed files reproduce exactly, and it is a no-op
+on a good header (there is a test for that). On a file whose statistics block
+has been corrupted it recovers the correct results bit for bit.
+
+`doc/lcp_format.md` documents the format, the unit codes and the scaling and
+nodata traps. `tests/test_tif2lcp.sh` exercises the whole path.
+
+
 #################  General Overview for Viewing Results on Windows Machine  #################
 
 If you don't want to install farsite, you're on your own, just need some kind of GIS software:
