@@ -923,30 +923,30 @@ void Farsite5::SetCellFuel(long posit, short tfuel)
 void Farsite5::GetCellDataFromMemory(long posit, celldata& cell, crowndata& cfuel,
 	grounddata& gfuel)
 {
-	short ldata[10], zero = 0;
+	short ldata[10];
 
 	memcpy(ldata, &landscape[posit * NumVals], NumVals * sizeof(short));
+
+	// Themes are interleaved in a fixed order: the five basic themes, then crown
+	// fuels if present, then ground fuels if present. Zero whatever this
+	// landscape does not carry -- callers read cfuel and gfuel unconditionally
+	// (FELocalSite::GetLandscapeData runs HeightConvert and WoodyConvert on every
+	// cell) and only consult HaveCrownFuels()/HaveGroundFuels() later.
+	memset(&cfuel, 0, sizeof(cfuel));
+	memset(&gfuel, 0, sizeof(gfuel));
+	memcpy(&cell, ldata, 5 * sizeof(short));
+
 	switch (NumVals)
 	{
-	case 5:
-		// only 5 basic themes
-		memcpy(&cell, ldata, NumVals * sizeof(short));
-		memcpy(&gfuel, &zero, 2 * sizeof(short));
+	case 5:						// basic themes only
 		break;
-	case 7:
-		// 5 basic and duff and woody
-		memcpy(&cell, ldata, 5 * sizeof(short));
-		memset(&gfuel, zero, 2 * sizeof(short));
+	case 7:						// basic + duff and woody
+		memcpy(&gfuel, &ldata[5], 2 * sizeof(short));
 		break;
-	case 8:
-		// 5 basic and crown fuels
-		memcpy(&cell, ldata, 5 * sizeof(short));
+	case 8:						// basic + crown fuels
 		memcpy(&cfuel, &ldata[5], 3 * sizeof(short));
-		memset(&gfuel, zero, 2 * sizeof(short));
 		break;
-	case 10:
-		// 5 basic, crown fuels, and duff and woody
-		memcpy(&cell, ldata, 5 * sizeof(short));
+	case 10:					// basic + crown fuels + duff and woody
 		memcpy(&cfuel, &ldata[5], 3 * sizeof(short));
 		memcpy(&gfuel, &ldata[8], 2 * sizeof(short));
 		break;

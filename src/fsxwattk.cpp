@@ -1231,7 +1231,7 @@ bool Attack::ParallelAttack(AttackData* atk, double TimeStep)
 				if (Hull1)
 					delete[] Hull1;//free(Hull1);
 				if (Hull2)
-					delete[] Hull1;//free(Hull2);
+					delete[] Hull2;//free(Hull2);
 				return true;
 			}
 			attack->LineBuilt += (LineDist / pFarsite->MetricResolutionConvert());
